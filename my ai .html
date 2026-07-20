@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism Vault AI — Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0f151b;
+    --board: #161f28;
+    --board-edge: #202b36;
+    --amber: #ffb020;
+    --amber-dim: #6b4e1e;
+    --teal: #56d8c6;
+    --text: #e9edf0;
+    --muted: #7c8894;
+    --red: #ff6b5e;
+    --row-hover: rgba(255,176,32,0.06);
+    --row-border: rgba(255,255,255,0.03);
+    --shadow: rgba(0,0,0,0.6);
+    --shadow-2: rgba(255,255,255,0.03);
+    --glow: 0.35;
+  }
+  html[data-theme="light"]{
+    --bg: #eef1f4;
+    --board: #ffffff;
+    --board-edge: #dbe1e6;
+    --amber: #b3760a;
+    --amber-dim: #e4c691;
+    --teal: #0f8f7d;
+    --text: #1b232b;
+    --muted: #66727d;
+    --red: #d94a3d;
+    --row-hover: rgba(179,118,10,0.07);
+    --row-border: rgba(0,0,0,0.05);
+    --shadow: rgba(20,30,40,0.12);
+    --shadow-2: rgba(0,0,0,0.02);
+    --glow: 0.15;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top, color-mix(in srgb, var(--board) 60%, var(--bg)) 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding:32px 16px 80px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  .frame{
+    max-width:960px;
+    margin:0 auto;
+  }
+
+  /* HEADER */
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--board-edge);
+    padding-bottom:18px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .brand span{color:var(--amber);}
+  .subhead{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .clock{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--amber);
+    text-align:right;
+    letter-spacing:1px;
+  }
+  .clock small{display:block;color:var(--muted);font-size:11px;margin-top:2px;letter-spacing:1.5px;}
+
+  .header-right{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+
+  .icon-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:32px;
+    height:32px;
+    border-radius:6px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    color:var(--muted);
+    cursor:pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+  }
+  .icon-btn svg{width:16px;height:16px;}
+
+  .switch{
+    position:relative;
+    width:46px;
+    height:24px;
+    border-radius:12px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    cursor:pointer;
+    padding:0;
+    transition: background 1.0s ease, border-color 1.0s ease;
+    flex-shrink:0;
+  }
+  .switch .knob{
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 6px var(--amber);
+    transition: transform 0.25s ease, background 0.25s ease;
+  }
+  html[data-theme="light"] .switch .knob{
+    transform: translateX(22px);
+    background:var(--teal);
+    box-shadow:0 0 6px var(--teal);
+  }
+  .switch:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+
+  /* MARQUEE TICKER */
+  .marquee{
+    margin-top:22px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    box-shadow: inset 0 1px 0 var(--shadow-2);
+  }
+  .marquee-label{
+    flex-shrink:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--bg);
+    background:var(--amber);
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .marquee-label::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--bg);
+    flex-shrink:0;
+  }
+  .marquee-track{
+    flex:1;
+    overflow:hidden;
+    white-space:nowrap;
+    position:relative;
+  }
+  .marquee-content{
+    display:inline-block;
+    padding-left:100%;
+    animation: marquee-scroll 46s linear infinite;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .marquee-content span{color:var(--teal);}
+  .marquee-content .sep{color:var(--amber-dim); margin:0 4px;}
+  .marquee-track:hover .marquee-content{animation-play-state:paused;}
+  @keyframes marquee-scroll{
+    0%{transform:translateX(0);}
+    100%{transform:translateX(-100%);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .marquee-content{animation:none; padding-left:16px;}
+  }
+
+  /* PAGE TABS */
+  .pager{
+    display:flex;
+    gap:8px;
+    margin-top:22px;
+    flex-wrap:wrap;
+  }
+  .pager-tab{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px 6px 0 0;
+    padding:9px 16px;
+    cursor:pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .pager-tab:hover{color:var(--text);}
+  .pager-tab.active{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+    border-bottom:1px solid var(--board);
+    position:relative;
+    top:1px;
+  }
+
+  /* BOARD */
+  .board{
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    overflow:hidden;
+    box-shadow: 0 30px 60px -30px var(--shadow), inset 0 1px 0 var(--shadow-2);
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .col-heads{
+    display:grid;
+    grid-template-columns: 56px 1.6fr 1fr 110px 112px;
+    padding:12px 20px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    color:var(--muted);
+    text-transform:uppercase;
+    border-bottom:1px solid var(--board-edge);
+  }
+  .category{
+    padding:14px 20px 4px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--teal);
+    text-transform:uppercase;
+    background:linear-gradient(180deg, rgba(86,216,198,0.06), transparent);
+    border-top:1px solid var(--board-edge);
+  }
+  .category:first-of-type{border-top:none;}
+
+  .row{
+    display:grid;
+    grid-template-columns: 56px 1.6fr 1fr 110px 112px;
+    cursor:pointer;
+    align-items:center;
+    padding:13px 20px;
+    text-decoration:none;
+    color:var(--text);
+    border-top:1px solid var(--row-border);
+    transition: background 0.15s ease, color 0.25s ease, border-color 0.25s ease;
+    position:relative;
+  }
+  .row:hover{
+    background:var(--row-hover);
+  }
+  .row:hover .gate{color:var(--amber); border-color:var(--amber);}
+  .row:hover .name{color:var(--amber);}
+
+  .code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:1px;
+  }
+  .name{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:15px;
+    color:var(--text);
+    transition:color 0.15s ease;
+  }
+  .desc{
+    font-size:12.5px;
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+  }
+  .status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    color:var(--teal);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .status::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--teal);
+    box-shadow:0 0 6px var(--teal);
+    flex-shrink:0;
+  }
+  .gate{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--muted);
+    border:1px solid var(--board-edge);
+    border-radius:4px;
+    padding:5px 10px;
+    text-align:center;
+    transition: all 0.15s ease;
+    justify-self:end;
+  }
+
+  .gate-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    justify-self:end;
+  }
+  .gate-wrap .gate{justify-self:auto;}
+  .dl-app{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:24px;
+    height:24px;
+    border-radius:4px;
+    border:1px solid var(--board-edge);
+    color:var(--muted);
+    background:transparent;
+    text-decoration:none;
+    flex-shrink:0;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .dl-app:hover{
+    color:var(--teal);
+    border-color:var(--teal);
+    background:rgba(86,216,198,0.08);
+  }
+  .dl-app svg{width:13px;height:13px;}
+
+  .empty-state{
+    padding:70px 20px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--muted);
+  }
+
+  /* split-flap load animation */
+  .flap{
+    display:inline-block;
+    animation: flapin 0.5s steps(6) both;
+  }
+  @keyframes flapin{
+    0%{opacity:0; transform: translateY(-6px) scaleY(0.4); filter:blur(1px);}
+    100%{opacity:1; transform: translateY(0) scaleY(1); filter:blur(0);}
+  }
+
+  footer{
+    max-width:960px;
+    margin:34px auto 0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:1px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  footer .dot{color:var(--amber);}
+
+  @media (max-width: 640px){
+    .col-heads{display:none;}
+    .row{grid-template-columns: 1fr auto; row-gap:4px;}
+    .code{display:none;}
+    .desc{grid-column:1 / -1; order:3;}
+    .status{order:2;}
+    .gate{order:1; justify-self:end;}
+    .gate-wrap{order:1; justify-self:end;}
+    .name{order:0;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .flap{animation:none;}
+  }
+
+  /* CONTACT / FOOTER STRIP */
+  .contact-strip{
+    margin-top:36px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    padding:26px 28px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:20px;
+    box-shadow: 0 20px 40px -28px var(--shadow), inset 0 1px 0 var(--shadow-2);
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .contact-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .contact-title span{color:var(--amber);}
+  .contact-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .contact-right{
+    text-align:right;
+  }
+  .contact-label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .contact-mail{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--teal);
+    text-decoration:none;
+    border-bottom:1px solid var(--amber-dim);
+    padding-bottom:2px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .contact-mail:hover{
+    color:var(--amber);
+    border-color:var(--amber);
+  }
+  .copyright{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    letter-spacing:1px;
+    margin-top:18px;
+  }
+
+  @media (max-width: 640px){
+    .contact-strip{flex-direction:column; align-items:flex-start; text-align:left;}
+    .contact-right{text-align:left;}
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="header">
+    <div>
+      <div class="brand">Prism vault <span>AI</span></div>
+      <div class="subhead">Assistant Departures &middot; All Gates Open</div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="downloadBtn" type="button" aria-label="Download this board as an HTML file" title="Download page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <button class="switch" id="themeSwitch" type="button" aria-label="Toggle light and dark mode" aria-pressed="false">
+        <span class="knob"></span>
+      </button>
+      <div class="clock" id="clock">
+        --:--:--
+        <small>Karachi &middot; PKT</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="marquee">
+    <span class="marquee-label">On Air</span>
+    <div class="marquee-track">
+      <span class="marquee-content" id="marqueeContent">
+        <span>SHAIKH AI</span> &middot; a curated directory of the world's most-used AI tools <span class="sep">&bull;</span>
+        <span id="marqueeCount">270+</span> assistants across chat, code, image, video, voice, business &amp; more <span class="sep">&bull;</span>
+        now boarding: <span>Claude</span>, <span>ChatGPT</span>, <span>Cursor</span>, <span>Notion</span>, <span>Canva</span> <span class="sep">&bull;</span>
+        created by <span>Absar Hussain Shaikh</span> <span class="sep">&bull;</span>
+        suggest a tool: <span>Hussain_Shaikh.8@outlook.com</span> <span class="sep">&bull;</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="pager" id="pager"></div>
+
+  <div class="board" id="board"></div>
+
+  <footer>
+    <span><span class="dot">&#9679;</span> <span id="footerCount">0</span> assistants listed &middot; last synced just now</span>
+    <span>Tap a row to board</span>
+  </footer>
+
+  <div class="contact-strip">
+    <div class="contact-left">
+      <div class="contact-title">Prism Vault <span>AI</span></div>
+      <div class="contact-title">CREATED BY</div>
+      <div class="contact-title">ABSAR HUSSAIN <span>SHAIKH</span></div>
+      <div class="contact-sub">A curated directory of the world's most-used AI tools.</div>
+    </div>
+    <div class="contact-right">
+      <span class="contact-label">Contact / Suggest a tool</span>
+      <a class="contact-mail" href="mailto:Hussain_Shaikh.8@outlook.com">Hussain_Shaikh.8@outlook.com</a>
+    </div>
+  </div>
+  <div class="copyright">&copy; <span id="year"></span> Shaikh AI &middot; All destinations link to their official sites</div>
+</div>
+
+<script>
+/* =========================================================================
+   DATA
+   Each tool: [name, url, desc, hasDownloadApp(optional bool)]
+   Each category: { name, letter, tools:[...] }
+   Each terminal: { label, categories:[...] }
+   ========================================================================= */
+const TERMINALS = [
+  { label:"Chat & Research", categories:[
+    { name:"Conversational Assistants", letter:"A", tools:[
+      ["ChatGPT","https://chat.openai.com","General-purpose writing & reasoning",true],
+      ["Claude","https://claude.ai","Long-form writing, reasoning, code",true],
+      ["Gemini","https://gemini.google.com","Google-integrated multimodal assistant"],
+      ["Grok","https://grok.com","Real-time, X-integrated assistant"],
+      ["Copilot","https://copilot.microsoft.com","Microsoft's everyday assistant",true],
+      ["DeepSeek","https://deepseek.com","Open-weight reasoning chat"],
+      ["Urdu AI","https://chatgpt.com/g/g-pE1VKxczG-urdu-ai-official","Urdu-first conversational assistant"],
+      ["Le Chat","https://chat.mistral.ai","Mistral's fast open assistant"],
+      ["Pi","https://pi.ai","Personal, emotionally supportive AI"],
+      ["Poe","https://poe.com","Multi-model chat hub"],
+      ["Character.AI","https://character.ai","Persona-driven roleplay chat"],
+      ["You.com","https://you.com","Search-integrated chat assistant"],
+      ["HuggingChat","https://huggingface.co/chat","Open-source model chat"],
+      ["Meta AI","https://meta.ai","Assistant across Meta's apps"],
+      ["Qwen Chat","https://chat.qwen.ai","Alibaba's multilingual assistant"],
+      ["Kimi","https://kimi.moonshot.cn","Long-context Chinese assistant"],
+      ["ERNIE Bot","https://yiyan.baidu.com","Baidu's conversational assistant"],
+      ["Command (Cohere)","https://cohere.com","Enterprise-focused chat & RAG"],
+      ["Replika","https://replika.com","Companion-style chat AI"],
+      ["MiniMax Chat","https://www.minimax.io","Multilingual chat & agent platform"],
+      ["Doubao","https://www.doubao.com","ByteDance's consumer assistant"],
+      ["Jan","https://jan.ai","Local, private open-source assistant"]
+    ]},
+    { name:"Research & Knowledge", letter:"B", tools:[
+      ["Perplexity","https://www.perplexity.ai","Cited, source-backed research answers",true],
+      ["NotebookLM","https://notebooklm.google","Grounded Q&A over your own documents"],
+      ["Elicit","https://elicit.com","AI research paper assistant"],
+      ["Consensus","https://consensus.app","Search engine for scientific studies"],
+      ["Scite","https://scite.ai","Citation-context analysis"],
+      ["Semantic Scholar","https://www.semanticscholar.org","AI-powered academic search"],
+      ["ResearchRabbit","https://www.researchrabbit.ai","Visual literature discovery"],
+      ["Connected Papers","https://www.connectedpapers.com","Visual paper graph explorer"],
+      ["Explainpaper","https://www.explainpaper.com","Upload & explain dense papers"],
+      ["SciSpace","https://typeset.io","Paper reading & writing copilot"],
+      ["Humata","https://www.humata.ai","Chat with PDFs & documents"],
+      ["Paperpal","https://paperpal.com","Academic writing & submission checks"],
+      ["Litmaps","https://www.litmaps.com","Citation mapping for literature reviews"],
+      ["Iris.ai","https://www.iris.ai","Science-focused research assistant"],
+      ["ChatPDF","https://www.chatpdf.com","Conversational document Q&A"]
+    ]}
+  ]},
+  { label:"Coding & Dev", categories:[
+    { name:"Coding & Development", letter:"C", tools:[
+      ["Claude Code","https://claude.ai/code","Agentic coding in your terminal"],
+      ["Cursor","https://cursor.sh","AI-native code editor",true],
+      ["GitHub Copilot","https://github.com/features/copilot","In-IDE pair programmer"],
+      ["Replit","https://replit.com","Build & deploy apps in the browser"],
+      ["v0","https://v0.dev","Prompt-to-UI component generator"],
+      ["Windsurf","https://windsurf.com","Agentic IDE by Codeium"],
+      ["Tabnine","https://www.tabnine.com","Privacy-focused code completion"],
+      ["Amazon Q Developer","https://aws.amazon.com/q/developer","AWS-integrated coding assistant"],
+      ["Sourcegraph Cody","https://sourcegraph.com/cody","Codebase-aware AI assistant"],
+      ["JetBrains AI Assistant","https://www.jetbrains.com/ai","IDE-native coding assistant"],
+      ["Continue.dev","https://www.continue.dev","Open-source IDE copilot"],
+      ["Bolt.new","https://bolt.new","Full-stack apps from a prompt"],
+      ["Lovable","https://lovable.dev","Prompt-to-web-app builder"],
+      ["Cline","https://cline.bot","Autonomous coding agent for VS Code"],
+      ["Aider","https://aider.chat","Terminal-based pair programming"],
+      ["Devin","https://devin.ai","Autonomous software engineer"],
+      ["Blackbox AI","https://www.blackbox.ai","Code search & generation"],
+      ["Phind","https://www.phind.com","Developer-focused search & answers"],
+      ["Warp","https://www.warp.dev","AI-powered terminal"],
+      ["Zed","https://zed.dev","High-performance AI-native editor"],
+      ["Supermaven","https://supermaven.com","Fast, low-latency code completion"],
+      ["Magic","https://magic.dev","Frontier coding model lab"],
+      ["Poolside","https://poolside.ai","Enterprise coding foundation model"]
+    ]},
+    { name:"Agent Frameworks & Local LLMs", letter:"D", tools:[
+      ["LangChain","https://www.langchain.com","Framework for building LLM apps"],
+      ["LangGraph","https://www.langchain.com/langgraph","Stateful multi-agent orchestration"],
+      ["Flowise","https://flowiseai.com","Drag-and-drop LLM flow builder"],
+      ["Dify","https://dify.ai","Low-code AI app & agent platform"],
+      ["CrewAI","https://www.crewai.com","Multi-agent collaboration framework"],
+      ["AutoGPT","https://agpt.co","Autonomous task-completion agent"],
+      ["AutoGen","https://microsoft.github.io/autogen","Microsoft's multi-agent framework"],
+      ["Semantic Kernel","https://github.com/microsoft/semantic-kernel","SDK for orchestrating AI plugins"],
+      ["Vercel AI SDK","https://sdk.vercel.ai","Toolkit for AI-powered web apps"],
+      ["Ollama","https://ollama.com","Run open models locally"],
+      ["LM Studio","https://lmstudio.ai","Local LLM desktop playground"],
+      ["GPT4All","https://www.nomic.ai/gpt4all","Private, offline chatbot runner"],
+      ["Hugging Face Hub","https://huggingface.co","Open models, datasets & spaces"],
+      ["LlamaIndex","https://www.llamaindex.ai","Data framework for LLM apps"],
+      ["AgentGPT","https://agentgpt.reworkd.ai","Browser-based autonomous agents"]
+    ]}
+  ]},
+  { label:"Creative Media", categories:[
+    { name:"Image Generation", letter:"E", tools:[
+      ["Midjourney","https://www.midjourney.com","Cinematic, artistic image generation"],
+      ["Adobe Firefly","https://firefly.adobe.com","Commercially-safe generative images"],
+      ["Leonardo AI","https://leonardo.ai","Fine-tuned models for game & concept art"],
+      ["Ideogram","https://ideogram.ai","Image generation with reliable text"],
+      ["DreamStudio","https://dreamstudio.ai","Stability AI's image studio"],
+      ["Playground","https://playground.com","Free-form creative image canvas"],
+      ["FLUX","https://blackforestlabs.ai","High-fidelity open image models"],
+      ["Recraft","https://www.recraft.ai","Vector, icon & brand-consistent art"],
+      ["Krea","https://www.krea.ai","Real-time generative design"],
+      ["NightCafe","https://creator.nightcafe.studio","Community-driven art generator"],
+      ["Artbreeder","https://www.artbreeder.com","Genetic-style image blending"],
+      ["Lexica","https://lexica.art","Prompt search & image generation"],
+      ["Freepik AI","https://www.freepik.com/ai","Stock-integrated image generator"],
+      ["Google ImageFX","https://labs.google/fx/tools/image-fx","Google's Imagen-powered generator"],
+      ["Civitai","https://civitai.com","Community model & image hub"],
+      ["Tensor.art","https://tensor.art","Free online Stable Diffusion studio"],
+      ["Draw Things","https://drawthings.ai","On-device Stable Diffusion app"],
+      ["Fotor","https://www.fotor.com","AI photo editing & generation"]
+    ]},
+    { name:"Video Generation", letter:"F", tools:[
+      ["Sora","https://sora.chatgpt.com","OpenAI's text-to-video generator"],
+      ["Veo","https://labs.google/flow","Google's realistic text-to-video model"],
+      ["Runway","https://runwayml.com","Text & image-to-video generation"],
+      ["Creatify","https://creatify.ai","Text & prompt-to-video generation"],
+      ["Kling AI","https://klingai.com","High-fidelity cinematic video generation"],
+      ["Pika","https://pika.art","Fast, stylized video generation"],
+      ["HeyGen","https://www.heygen.com","AI avatar & spokesperson video"],
+      ["Synthesia","https://www.synthesia.io","Script-to-video business content"],
+      ["Luma Dream Machine","https://lumalabs.ai/dream-machine","Realistic motion from a prompt"],
+      ["Pictory","https://pictory.ai","Long-form video into short clips"],
+      ["InVideo","https://invideo.io","Text-to-video for marketing content"],
+      ["Descript","https://www.descript.com","Edit video like a text document"],
+      ["D-ID","https://www.d-id.com","Talking-photo avatar generation"],
+      ["Colossyan","https://www.colossyan.com","Training-video avatar generation"],
+      ["Hailuo AI","https://hailuoai.video","MiniMax's cinematic video model"],
+      ["Vidu","https://www.vidu.com","Multi-shot AI video generation"],
+      ["Haiper","https://haiper.ai","Fast, expressive video generation"],
+      ["LTX Studio","https://ltx.studio","Storyboard-to-video production suite"]
+    ]},
+    { name:"Music & Voice", letter:"G", tools:[
+      ["Suno","https://suno.com","Full song generation from a prompt"],
+      ["Udio","https://www.udio.com","High-quality AI music generation"],
+      ["ElevenLabs","https://elevenlabs.io","Realistic voice cloning & text-to-speech",true],
+      ["Murf","https://murf.ai","Studio-quality AI voiceovers"],
+      ["Play.ht","https://play.ht","Ultra-realistic text-to-speech API"],
+      ["Resemble AI","https://www.resemble.ai","Custom voice cloning platform"],
+      ["WellSaid Labs","https://wellsaidlabs.com","Enterprise voiceover generation"],
+      ["Speechify","https://speechify.com","Text-to-speech reading assistant"],
+      ["Podcastle","https://podcastle.ai","AI-powered podcast studio"],
+      ["Adobe Podcast","https://podcast.adobe.com","Studio-quality audio enhancement"],
+      ["AIVA","https://www.aiva.ai","AI composer for soundtracks"],
+      ["Boomy","https://boomy.com","Instant song creation for anyone"],
+      ["LALAL.AI","https://www.lalal.ai","Stem splitting & vocal removal"],
+      ["Riffusion","https://www.riffusion.com","Real-time generative music"],
+      ["Beatoven.ai","https://www.beatoven.ai","Mood-based royalty-free music"]
+    ]}
+  ]},
+  { label:"Design & Productivity", categories:[
+    { name:"Design & Docs", letter:"H", tools:[
+      ["Canva","https://www.canva.com","AI-assisted graphics & slide design",true],
+      ["Gamma","https://gamma.app","Notes turned into decks & docs"],
+      ["Notion AI","https://www.notion.so","AI built into notes & workspace",true],
+      ["Framer","https://www.framer.com","AI-assisted website building"],
+      ["Uizard","https://uizard.io","Sketch-to-UI design generation"],
+      ["Galileo AI","https://www.usegalileo.ai","Prompt-to-editable UI design"],
+      ["Beautiful.ai","https://www.beautiful.ai","Auto-designed presentations"],
+      ["Tome","https://tome.app","AI-native storytelling decks"],
+      ["Designs.ai","https://designs.ai","All-in-one design generation suite"],
+      ["Visily","https://www.visily.ai","Screenshot-to-wireframe design"],
+      ["Relume","https://www.relume.io","AI sitemap & wireframe builder"],
+      ["Durable","https://durable.co","Instant AI website builder"]
+    ]},
+    { name:"Writing & Productivity", letter:"I", tools:[
+      ["Grammarly","https://www.grammarly.com","Tone, clarity & grammar rewrites",true],
+      ["Jasper","https://www.jasper.ai","On-brand marketing copy at scale"],
+      ["Copy.ai","https://www.copy.ai","Go-to-market content generation"],
+      ["Writesonic","https://writesonic.com","SEO articles & ad copy"],
+      ["Sudowrite","https://www.sudowrite.com","Fiction & story-writing partner"],
+      ["QuillBot","https://quillbot.com","Paraphrasing & grammar checking"],
+      ["Wordtune","https://www.wordtune.com","Sentence-level rewriting assistant"],
+      ["Rytr","https://rytr.me","Short-form AI copywriting"],
+      ["ProWritingAid","https://prowritingaid.com","In-depth style & grammar editor"],
+      ["Hemingway Editor","https://hemingwayapp.com","Readability & clarity scoring"],
+      ["Lex","https://lex.page","AI-native long-form writing doc"],
+      ["Writer","https://writer.com","Enterprise brand-voice writing platform"],
+      ["Simplified","https://simplified.com","All-in-one content & design suite"]
+    ]},
+    { name:"Meetings & Notes", letter:"J", tools:[
+      ["Fathom","https://fathom.video","Meeting recorder & action items"],
+      ["Granola","https://www.granola.ai","Notes that merge with what was said"],
+      ["Otter.ai","https://otter.ai","Live meeting transcription"],
+      ["Fireflies.ai","https://fireflies.ai","Meeting notes & conversation search"],
+      ["tl;dv","https://tldv.io","Meeting recording & highlight reels"],
+      ["Krisp","https://krisp.ai","Noise cancellation & meeting notes"],
+      ["Read AI","https://www.read.ai","Meeting summaries & sentiment"],
+      ["Rewind","https://www.rewind.ai","Searchable memory of your day"],
+      ["Avoma","https://www.avoma.com","Conversation intelligence for revenue teams"],
+      ["Supernormal","https://supernormal.com","Automated meeting notes"],
+      ["MeetGeek","https://meetgeek.ai","Meeting recording & analytics"]
+    ]},
+    { name:"Presentations & Email", letter:"K", tools:[
+      ["SlidesAI","https://www.slidesai.io","Text-to-slides for Google Slides"],
+      ["Plus AI","https://plusdocs.com","AI slide generation for teams"],
+      ["Decktopus","https://www.decktopus.com","Instant presentation builder"],
+      ["Genially","https://genially.com","Interactive presentation design"],
+      ["Visme","https://www.visme.co","AI-assisted visual content design"],
+      ["Superhuman","https://superhuman.com","Fast, AI-triaged email client"],
+      ["Shortwave","https://www.shortwave.com","AI-organized email inbox"],
+      ["SaneBox","https://www.sanebox.com","Automatic inbox prioritization"],
+      ["Lavender","https://www.lavender.ai","AI sales-email coaching"],
+      ["Fyxer","https://fyxer.com","Auto-drafted email replies"]
+    ]},
+    { name:"Resume & Career", letter:"L", tools:[
+      ["Teal","https://www.tealhq.com","Resume builder & job tracker"],
+      ["Kickresume","https://www.kickresume.com","AI resume & cover letter writer"],
+      ["Rezi","https://www.rezi.ai","ATS-optimized resume builder"],
+      ["Zety","https://zety.com","Guided resume & CV creation"],
+      ["Enhancv","https://enhancv.com","Visual, modern resume design"],
+      ["Careerflow","https://www.careerflow.ai","LinkedIn & job-search optimizer"]
+    ]}
+  ]},
+  { label:"Business & Ops", categories:[
+    { name:"Automation & Agents", letter:"M", tools:[
+      ["n8n","https://n8n.io","Self-hosted AI workflow automation"],
+      ["Zapier","https://zapier.com","Connect apps into automated workflows"],
+      ["Make","https://www.make.com","Visual workflow automation builder"],
+      ["Relevance AI","https://relevanceai.com","Build & deploy AI agent teams"],
+      ["Lindy","https://www.lindy.ai","No-code AI agent builder"],
+      ["Gumloop","https://www.gumloop.com","Drag-and-drop AI automation"],
+      ["Bardeen","https://www.bardeen.ai","Browser-based workflow automation"],
+      ["UiPath","https://www.uipath.com","Enterprise robotic process automation"],
+      ["Automation Anywhere","https://www.automationanywhere.com","Agentic process automation platform"],
+      ["Motion","https://www.usemotion.com","AI-planned calendars & task lists"],
+      ["Cassidy","https://www.cassidyai.com","Company-knowledge-grounded agents"]
+    ]},
+    { name:"Marketing & SEO", letter:"N", tools:[
+      ["Surfer SEO","https://surferseo.com","Data-driven on-page SEO"],
+      ["Clearscope","https://www.clearscope.io","Content optimization for search"],
+      ["MarketMuse","https://www.marketmuse.com","AI content strategy & briefs"],
+      ["Frase","https://www.frase.io","SEO content research & drafting"],
+      ["AdCreative.ai","https://www.adcreative.ai","AI-generated ad creatives"],
+      ["Anyword","https://anyword.com","Performance-predicting copywriting"],
+      ["Semrush","https://www.semrush.com","AI-assisted SEO & marketing suite"],
+      ["Copysmith","https://copysmith.ai","E-commerce & catalog copy at scale"]
+    ]},
+    { name:"Sales & CRM", letter:"O", tools:[
+      ["HubSpot Breeze","https://www.hubspot.com/artificial-intelligence","AI across CRM & marketing"],
+      ["Salesforce Einstein","https://www.salesforce.com/einstein","Predictive CRM intelligence"],
+      ["Apollo.io","https://www.apollo.io","AI-assisted prospecting & outreach"],
+      ["Gong","https://www.gong.io","Revenue conversation intelligence"],
+      ["Clari","https://www.clari.com","Forecasting & deal-risk AI"],
+      ["Chorus","https://www.chorus.ai","Call & meeting analytics for sales"],
+      ["Regie.ai","https://www.regie.ai","AI sales content & sequencing"],
+      ["Clay","https://www.clay.com","AI-enriched go-to-market data"]
+    ]},
+    { name:"Customer Support", letter:"P", tools:[
+      ["Intercom Fin","https://www.intercom.com/fin","AI customer-service agent"],
+      ["Zendesk AI","https://www.zendesk.com/ai","AI-assisted support suite"],
+      ["Ada","https://www.ada.cx","No-code support automation"],
+      ["Drift","https://www.drift.com","Conversational marketing & sales bots"],
+      ["Freshdesk Freddy","https://www.freshworks.com/freshdesk","AI-assisted helpdesk"],
+      ["Tidio","https://www.tidio.com","Live chat & support chatbots"],
+      ["Forethought","https://forethought.ai","AI triage for support tickets"],
+      ["Kustomer","https://www.kustomer.com","AI-native customer service platform"]
+    ]},
+    { name:"HR, Legal & Finance", letter:"Q", tools:[
+      ["HireVue","https://www.hirevue.com","AI-assisted video interviewing"],
+      ["Paradox","https://www.paradox.ai","Conversational recruiting assistant"],
+      ["Textio","https://textio.com","Bias-aware job-post writing"],
+      ["Eightfold AI","https://eightfold.ai","Talent intelligence platform"],
+      ["Harvey","https://www.harvey.ai","AI for legal research & drafting"],
+      ["CoCounsel","https://casetext.com/cocounsel","Legal AI assistant by Thomson Reuters"],
+      ["Spellbook","https://www.spellbook.legal","Contract drafting & review AI"],
+      ["Ironclad AI","https://ironcladapp.com","Contract lifecycle automation"],
+      ["DoNotPay","https://donotpay.com","Consumer legal-help chatbot"],
+      ["AlphaSense","https://www.alpha-sense.com","Market intelligence search"],
+      ["Vic.ai","https://www.vic.ai","Autonomous invoice processing"],
+      ["Ramp","https://ramp.com","AI-assisted expense & spend management"]
+    ]},
+    { name:"Data, Analytics & Detection", letter:"R", tools:[
+      ["Julius AI","https://julius.ai","Chat-based data analysis"],
+      ["Akkio","https://www.akkio.com","No-code predictive modeling"],
+      ["DataRobot","https://www.datarobot.com","Enterprise AutoML platform"],
+      ["MonkeyLearn","https://monkeylearn.com","Text-analysis API & tools"],
+      ["ThoughtSpot","https://www.thoughtspot.com","AI-driven business analytics"],
+      ["Hex","https://hex.tech","Collaborative data notebooks"],
+      ["GPTZero","https://gptzero.me","AI-generated text detection"],
+      ["Originality.ai","https://originality.ai","Content authenticity checker"],
+      ["Copyleaks","https://copyleaks.com","Plagiarism & AI-content detection"],
+      ["Winston AI","https://gowinston.ai","AI-detection for educators & publishers"]
+    ]}
+  ]},
+  { label:"Specialized", categories:[
+    { name:"Education", letter:"S", tools:[
+      ["Khanmigo","https://www.khanacademy.org/khan-labs","Khan Academy's AI tutor"],
+      ["Duolingo Max","https://www.duolingo.com","AI-powered language practice"],
+      ["Socratic","https://socratic.org","Homework help by Google"],
+      ["Coursera Coach","https://www.coursera.org","AI learning assistant for courses"],
+      ["Speak","https://www.speak.com","AI conversation-practice tutor"],
+      ["Quizlet","https://quizlet.com","AI-generated study sets & tutoring"]
+    ]},
+    { name:"Healthcare", letter:"T", tools:[
+      ["Nuance DAX","https://www.nuance.com/healthcare/dragon-ai-clinical-solutions/dax-copilot.html","Ambient clinical documentation"],
+      ["Ambience Healthcare","https://www.ambiencehealthcare.com","AI medical scribe platform"],
+      ["Abridge","https://www.abridge.com","Clinical conversation summarization"],
+      ["Suki","https://www.suki.ai","Voice AI assistant for clinicians"],
+      ["Hippocratic AI","https://www.hippocraticai.com","Patient-facing healthcare AI"],
+      ["Nabla","https://www.nabla.com","AI copilot for clinicians"]
+    ]},
+    { name:"3D & Gaming", letter:"U", tools:[
+      ["Scenario","https://www.scenario.com","Game-ready AI asset generation"],
+      ["Meshy","https://www.meshy.ai","Text/image-to-3D model generation"],
+      ["Luma AI","https://lumalabs.ai","3D capture & neural rendering"],
+      ["Kaedim","https://www.kaedim3d.com","2D-to-3D model conversion"],
+      ["Rosebud AI","https://www.rosebud.ai","AI-assisted game creation"],
+      ["Inworld AI","https://inworld.ai","AI characters & NPC dialogue"]
+    ]},
+    { name:"Translation & Language", letter:"V", tools:[
+      ["DeepL","https://www.deepl.com","High-accuracy neural translation"],
+      ["Google Translate","https://translate.google.com","Broad-coverage AI translation"],
+      ["Reverso","https://www.reverso.net","Translation with contextual examples"],
+      ["Papago","https://papago.naver.com","Naver's Asia-focused translator"],
+      ["Lilt","https://lilt.com","AI translation for enterprises"],
+      ["Unbabel","https://unbabel.com","AI + human hybrid translation"]
+    ]},
+    { name:"Avatars & Digital Humans", letter:"W", tools:[
+      ["Hour One","https://hourone.ai","Text-to-video presenter avatars"],
+      ["Elai.io","https://elai.io","Avatar video from slides & text"],
+      ["Vidnoz","https://www.vidnoz.com","Free AI avatar video generator"],
+      ["Yepic AI","https://www.yepic.ai","Real-time interactive avatars"]
+    ]},
+    { name:"Search & Browsing Agents", letter:"X", tools:[
+      ["Comet","https://www.perplexity.ai/comet","Perplexity's agentic browser"],
+      ["Arc Search","https://arc.net/search","Browse-for-you search app"],
+      ["Bing Copilot","https://www.bing.com/chat","Search-integrated Microsoft assistant"],
+      ["Opera Aria","https://www.opera.com","Built-in browser AI assistant"],
+      ["Genspark","https://www.genspark.ai","AI-generated answer pages"],
+      ["Andi","https://andisearch.com","Conversational search engine"]
+    ]}
+  ]}
+];
+
+const downloadSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>';
+
+function escapeAttr(str){
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+function buildBoard(){
+  const pager = document.getElementById('pager');
+  const board = document.getElementById('board');
+  let totalTools = 0;
+
+  TERMINALS.forEach((terminal, tIdx) => {
+    const pageId = 'page-' + (tIdx + 1);
+
+    const tab = document.createElement('button');
+    tab.className = 'pager-tab' + (tIdx === 0 ? ' active' : '');
+    tab.type = 'button';
+    tab.dataset.page = pageId;
+    tab.textContent = terminal.label;
+    pager.appendChild(tab);
+
+    const page = document.createElement('div');
+    page.className = 'page' + (tIdx === 0 ? ' active' : '');
+    page.id = pageId;
+
+    const colHeads = document.createElement('div');
+    colHeads.className = 'col-heads';
+    colHeads.innerHTML = '<span>Gate</span><span>Assistant</span><span>Purpose</span><span>Status</span><span></span>';
+    page.appendChild(colHeads);
+
+    terminal.categories.forEach(cat => {
+      const catEl = document.createElement('div');
+      catEl.className = 'category';
+      catEl.textContent = cat.name;
+      page.appendChild(catEl);
+
+      cat.tools.forEach((tool, i) => {
+        const [name, url, desc, hasApp] = tool;
+        const code = cat.letter + (i + 1);
+        totalTools++;
+
+        let rowEl;
+        if (hasApp) {
+          rowEl = document.createElement('div');
+          rowEl.className = 'row';
+          rowEl.dataset.href = url;
+          rowEl.innerHTML =
+            '<span class="code flap">' + code + '</span>' +
+            '<span class="name flap">' + name + '</span>' +
+            '<span class="desc flap">' + desc + '</span>' +
+            '<span class="status flap">Online</span>' +
+            '<span class="gate-wrap flap">' +
+              '<a class="dl-app" href="' + escapeAttr(url) + '" target="_blank" rel="noopener" title="Open" onclick="event.stopPropagation()">' + downloadSvg + '</a>' +
+              '<span class="gate">Board &rarr;</span>' +
+            '</span>';
+        } else {
+          rowEl = document.createElement('a');
+          rowEl.className = 'row';
+          rowEl.href = url;
+          rowEl.target = '_blank';
+          rowEl.rel = 'noopener';
+          rowEl.innerHTML =
+            '<span class="code flap">' + code + '</span>' +
+            '<span class="name flap">' + name + '</span>' +
+            '<span class="desc flap">' + desc + '</span>' +
+            '<span class="status flap">Online</span>' +
+            '<span class="gate flap">Board &rarr;</span>';
+        }
+        page.appendChild(rowEl);
+      });
+    });
+
+    board.appendChild(page);
+  });
+
+  document.getElementById('footerCount').textContent = totalTools;
+  document.getElementById('marqueeCount').textContent = totalTools + '+';
+
+  // stagger split-flap entrance per row on the initially active page
+  document.querySelectorAll('.page.active .row').forEach((row, i) => {
+    row.querySelectorAll('.flap').forEach((el, j) => {
+      el.style.animationDelay = (i * 40 + j * 20) + 'ms';
+    });
+  });
+
+  wirePagerTabs();
+  wireDataHrefRows();
+}
+
+function wirePagerTabs(){
+  const tabs = document.querySelectorAll('.pager-tab');
+  const pages = document.querySelectorAll('.page');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const activePage = document.getElementById(tab.dataset.page);
+      activePage.classList.add('active');
+      activePage.querySelectorAll('.row').forEach((row, i) => {
+        row.querySelectorAll('.flap').forEach((el, j) => {
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = '';
+          el.style.animationDelay = (i * 40 + j * 20) + 'ms';
+        });
+      });
+    });
+  });
+}
+
+function wireDataHrefRows(){
+  document.querySelectorAll('.row[data-href]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.dl-app')) return;
+      window.open(row.dataset.href, '_blank', 'noopener');
+    });
+    row.setAttribute('tabindex', '0');
+    row.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('.dl-app')) {
+        e.preventDefault();
+        window.open(row.dataset.href, '_blank', 'noopener');
+      }
+    });
+  });
+}
+
+function tick(){
+  const el = document.getElementById('clock');
+  const now = new Date();
+  const opts = { hour12:false, timeZone:'Asia/Karachi' };
+  const time = now.toLocaleTimeString('en-GB', opts);
+  el.childNodes[0].nodeValue = time + ' ';
+}
+tick();
+setInterval(tick, 1000);
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// theme toggle
+const themeSwitch = document.getElementById('themeSwitch');
+const rootEl = document.documentElement;
+function setTheme(theme){
+  if(theme === 'light'){
+    rootEl.setAttribute('data-theme', 'light');
+    themeSwitch.setAttribute('aria-pressed', 'true');
+  } else {
+    rootEl.removeAttribute('data-theme');
+    themeSwitch.setAttribute('aria-pressed', 'false');
+  }
+}
+setTheme('dark');
+themeSwitch.addEventListener('click', () => {
+  const isLight = rootEl.getAttribute('data-theme') === 'light';
+  setTheme(isLight ? 'dark' : 'light');
+});
+
+// download this page as a standalone HTML file
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'shaikh-ai-departures.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+buildBoard();
+</script>
+
+</body>
+</html>
